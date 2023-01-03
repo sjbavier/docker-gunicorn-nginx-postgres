@@ -1,0 +1,53 @@
+version: "3"
+services:
+  web:
+    build:
+      context: .
+      dockerfile: server.Dockerfile
+    command: gunicorn -w 4 -b 0.0.0.0:8000 sersky:app
+    volumes:
+      - ./server:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./server/.env.prod
+    environment:
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=webmane
+      - DB_TYPE=postgresql
+    depends_on:
+      - db
+  nginx:
+    # build:
+    #   context: .
+    #   dockerfile: nginx.Dockerfile
+    image: nginx:latest
+    volumes:
+      - ./static/:/app/
+      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./configs/nginx/ssl/:/etc/ssl_certs/web/
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - APP_DOMAIN=b4v1n4t0r.webmane.net
+      - APP_API=web
+      - APP_ROOT=/app/
+    depends_on:
+      - web
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=webmane
+    volumes:
+      - ./db-data/:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+volumes:
+  db-data:
